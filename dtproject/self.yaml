@@ -1,8 +1,8 @@
-name: "<PROJECT_NAME_HERE>"
+name: "dt-ros-interface"
 maintainer:
-    name: "<YOUR_FULL_NAME>"
-    email: "<YOUR_EMAIL_ADDRESS>"
-description: "<PROJECT_DESCRIPTION_HERE>"
-version: 0.0.0
+    name: "Andrea F. Daniele"
+    email: "afdaniele@duckietown.com"
+description: "ROS1 Interface to the Duckietown robots"
+version: 4.0.0
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 icon: square
