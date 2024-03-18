@@ -12,6 +12,7 @@ from dtps import context
 from dtps_http import RawData
 from duckietown_messages.sensors.camera import Camera
 from duckietown_messages.sensors.compressed_image import CompressedImage
+from duckietown_messages.utils.exceptions import DataDecodingError
 
 
 class CameraNode(DTROS):
@@ -58,7 +59,11 @@ class CameraNode(DTROS):
 
     async def publish(self, data: RawData):
         # TODO: only publish if somebody is listening
-        jpeg: CompressedImage = CompressedImage.from_rawdata(data)
+        try:
+            jpeg: CompressedImage = CompressedImage.from_rawdata(data)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         # create CompressedImage message
         msg: ROSCompressedImage = ROSCompressedImage(
             header=rospy.Header(
@@ -77,7 +82,11 @@ class CameraNode(DTROS):
             self._has_published = True
 
     async def publish_camera_info(self, rdata: RawData):
-        camera: Camera = Camera.from_rawdata(rdata)
+        try:
+            camera: Camera = Camera.from_rawdata(rdata)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         msg: ROSCameraInfo = ROSCameraInfo(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message

@@ -15,6 +15,7 @@ from dtps import context
 from dtps_http import RawData
 from duckietown.dtros import DTROS, NodeType
 from duckietown_messages.standard.dictionary import Dictionary
+from duckietown_messages.utils.exceptions import DataDecodingError
 
 
 class IMUNode(DTROS):
@@ -32,7 +33,11 @@ class IMUNode(DTROS):
     async def publish(self, data: RawData):
         # TODO: only publish if somebody is listening
         # decode data
-        imu: Dictionary = Dictionary.from_rawdata(data)
+        try:
+            imu: Dictionary = Dictionary.from_rawdata(data)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         # create IMU message
         imu_msg: ROSImu = ROSImu(
             header=rospy.Header(

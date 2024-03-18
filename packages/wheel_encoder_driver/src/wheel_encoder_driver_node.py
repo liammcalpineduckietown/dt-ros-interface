@@ -50,7 +50,11 @@ class WheelEncoderNode(DTROS):
     async def publish(self, data: RawData):
         # TODO: only publish if somebody is listening
         # decode data
-        ticks: Integer = Integer.from_rawdata(data)
+        try:
+            ticks: Integer = Integer.from_rawdata(data)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         # create encoder ticks message
         ticks_msg: WheelEncoderStamped = WheelEncoderStamped(
             header=rospy.Header(

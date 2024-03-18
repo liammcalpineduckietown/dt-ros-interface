@@ -10,6 +10,7 @@ from dtps import context
 from dtps_http import RawData
 from duckietown.dtros import DTROS, NodeType, TopicType
 from duckietown_messages.sensors.range import Range
+from duckietown_messages.utils.exceptions import DataDecodingError
 
 MAX_RANGE = 99  # meters
 
@@ -34,7 +35,11 @@ class ToFNode(DTROS):
     async def publish(self, data: RawData):
         # TODO: only publish if somebody is listening
         # decode data
-        tof: Range = Range.from_rawdata(data)
+        try:
+            tof: Range = Range.from_rawdata(data)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         # create Range message
         tof_msg: ROSRange = ROSRange(
             header=rospy.Header(

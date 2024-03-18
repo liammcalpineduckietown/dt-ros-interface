@@ -10,6 +10,7 @@ from dt_robot_utils import get_robot_name
 from dtps import context
 from dtps_http import RawData
 from duckietown_messages.sensors.button_event import ButtonEvent
+from duckietown_messages.utils.exceptions import DataDecodingError
 
 
 class ButtonDriverNode(DTROS):
@@ -34,7 +35,11 @@ class ButtonDriverNode(DTROS):
 
     async def publish(self, data: RawData):
         # TODO: only publish if somebody is listening
-        event: ButtonEvent = ButtonEvent.from_rawdata(data)
+        try:
+            event: ButtonEvent = ButtonEvent.from_rawdata(data)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            return
         # create ButtonEvent message
         msg: ROSButtonEvent = ROSButtonEvent(
             event=event.type.value
