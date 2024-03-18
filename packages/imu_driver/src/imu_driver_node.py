@@ -19,7 +19,6 @@ from duckietown_messages.standard.dictionary import Dictionary
 
 class IMUNode(DTROS):
     def __init__(self):
-        # Node Init
         super(IMUNode, self).__init__(node_name="imu_node", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
         # publishers initialization
