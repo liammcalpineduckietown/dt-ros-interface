@@ -98,8 +98,8 @@ class CameraNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for camera to be ready
-        jpeg = await (switchboard / "sensors" / "camera" / "jpeg").until_ready()
-        parameters = await (switchboard / "sensors" / "camera" / "parameters").until_ready()
+        jpeg = await (switchboard / "sensor" / "camera" / "jpeg").until_ready()
+        parameters = await (switchboard / "sensor" / "camera" / "parameters").until_ready()
         # wait for camera parameters then publish
         rdata: RawData = await parameters.data_get()
         await self.publish_camera_info(rdata)

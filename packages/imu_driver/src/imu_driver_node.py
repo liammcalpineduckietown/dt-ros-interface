@@ -60,7 +60,7 @@ class IMUNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # IMU queue
-        imu = await (switchboard / "sensors" / "imu" / "raw").until_ready()
+        imu = await (switchboard / "sensor" / "imu" / "raw").until_ready()
         # subscribe
         await imu.subscribe(self.publish)
         # ---

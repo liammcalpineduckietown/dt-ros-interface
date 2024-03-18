@@ -46,7 +46,7 @@ class ButtonDriverNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for the button queue to be ready
-        button = await (switchboard / "sensors" / "power-button").until_ready()
+        button = await (switchboard / "sensor" / "power-button").until_ready()
         # subscribe
         await button.subscribe(self.publish)
         # ---
