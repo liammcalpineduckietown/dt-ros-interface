@@ -112,7 +112,6 @@ class WheelsDriverNode(DTROS):
         self.pub_wheels_cmd.publish(executed_msg)
 
     async def worker(self):
-        self._loop = asyncio.get_event_loop()
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wheels PWM signal
@@ -123,6 +122,7 @@ class WheelsDriverNode(DTROS):
         # subscribe
         await pwm_filtered.subscribe(self.publish_executed)
         # ---
+        self._loop = asyncio.get_event_loop()
         await self.join()
 
     async def join(self):
