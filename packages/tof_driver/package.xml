@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package>
     <name>tof_driver</name>
-    <version>1.0.0</version>
-    <description>An interface to the ToF sensor</description>
+    <version>2.0.0</version>
+    <description>DTPS-based time-of-flight drivers</description>
 
-    <author email="afdaniele@ttic.edu">Andrea F. Daniele</author>
-    <maintainer email="afdaniele@ttic.edu">Andrea F. Daniele</maintainer>
+    <author email="afdaniele@duckietown.com">Andrea F. Daniele</author>
+    <maintainer email="afdaniele@duckietown.com">Andrea F. Daniele</maintainer>
 
-    <license>GPLv3</license>
+    <license>Duckietown License</license>
 
     <buildtool_depend>catkin</buildtool_depend>
 

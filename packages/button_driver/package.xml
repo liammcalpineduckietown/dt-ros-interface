@@ -7,7 +7,7 @@
     <author email="afdaniele@duckietown.com">Andrea F. Daniele</author>
     <maintainer email="afdaniele@duckietown.com">Andrea F. Daniele</maintainer>
 
-    <license>GPLv3</license>
+    <license>Duckietown License</license>
 
     <buildtool_depend>catkin</buildtool_depend>
 
