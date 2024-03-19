@@ -14,6 +14,7 @@ from dtps import context
 from dtps_http import RawData
 from duckietown.dtros import DTROS, TopicType, NodeType
 from duckietown_messages.standard.integer import Integer
+from duckietown_messages.utils.exceptions import DataDecodingError
 
 RESOLUTION: int = 135
 
