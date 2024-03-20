@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="veh" doc="Name of vehicle. ex: megaman"/>
+
+    <!-- ROS HTTP API: provides an HTTP API through which we can monitor the ROS network -->
+    <include file="$(find ros_http_api)/launch/ros_http_api_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- Button node -->
+    <include file="$(find button_driver)/launch/button_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- Camera node -->
+    <include file="$(find camera_driver)/launch/camera_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- Display node -->
+    <include file="$(find display_driver)/launch/display_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- IMU node -->
+    <include file="$(find imu_driver)/launch/imu_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- LED node -->
+    <include file="$(find led_driver)/launch/led_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- ToF node -->
+    <include file="$(find tof_driver)/launch/tof_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+        <arg name="name" value="front_center"/>
+    </include>
+
+    <!-- (Left) Wheel Encoder node -->
+    <include file="$(find wheel_encoder_driver)/launch/wheel_encoder_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+        <arg name="wheel" value="left"/>
+    </include>
+
+    <!-- (Right) Wheel Encoder node -->
+    <include file="$(find wheel_encoder_driver)/launch/wheel_encoder_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+        <arg name="wheel" value="right"/>
+    </include>
+
+    <!-- Wheels node -->
+    <include file="$(find wheels_driver)/launch/wheels_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+</launch>

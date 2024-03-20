@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="veh" doc="Name of vehicle. ex: megaman"/>
+
+    <!-- ROS HTTP API: provides an HTTP API through which we can monitor the ROS network -->
+    <include file="$(find ros_http_api)/launch/ros_http_api_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- Camera node -->
+    <include file="$(find camera_driver)/launch/camera_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
+    <!-- ToF node -->
+    <include file="$(find tof_driver)/launch/tof_driver_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+        <arg name="name" value="bottom"/>
+    </include>
+
+    <!-- TODO: add missing nodes -->
+</launch>
