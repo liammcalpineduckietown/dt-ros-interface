@@ -68,7 +68,18 @@ class ToFNode(DTROS):
             await asyncio.sleep(1)
 
     def spin(self):
-        asyncio.run(self.worker())
+        try:
+            asyncio.run(self.worker())
+        except RuntimeError:
+            if not self.is_shutdown:
+                self.logerr("An error occurred while running the event loop")
+                raise
+
+    def on_shutdown(self):
+        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        if loop is not None:
+            self.loginfo("Shutting down the event loop")
+            loop.stop()
 
 
 if __name__ == "__main__":

@@ -62,7 +62,12 @@ class ButtonDriverNode(DTROS):
             await asyncio.sleep(1)
 
     def spin(self):
-        asyncio.run(self.worker())
+        try:
+            asyncio.run(self.worker())
+        except RuntimeError:
+            if not self.is_shutdown:
+                self.logerr("An error occurred while running the event loop")
+                raise
 
 
 if __name__ == "__main__":
