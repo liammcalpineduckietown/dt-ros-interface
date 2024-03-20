@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+    <name>ros_http_api</name>
+    <version>1.0.0</version>
+    <description>The ros_http_api meta package</description>
+
+    <author email="afdaniele@duckietown.com">Andrea F. Daniele</author>
+    <maintainer email="afdaniele@duckietown.com">Andrea F. Daniele</maintainer>
+
+    <license>Duckietown License</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <build_depend>roscpp</build_depend>
+    <build_depend>rospy</build_depend>
+
+    <run_depend>roscpp</run_depend>
+    <run_depend>rospy</run_depend>
+</package>
