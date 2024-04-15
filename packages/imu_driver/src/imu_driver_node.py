@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
-
+import tf
+from duckietown_messages.sensors.attitude import Attitude
 import rospy
-from geometry_msgs.msg import Vector3
+
+from geometry_msgs.msg import Vector3, Quaternion
 # from hardware_test_imu import HardwareTestIMU
 from sensor_msgs.msg import (
     Imu as ROSImu,
@@ -48,18 +50,30 @@ class IMUNode(DTROS):
             linear_acceleration=Vector3(*imu.data["linear_accelerations"]),
             angular_velocity=Vector3(*imu.data["angular_velocities"]),
         )
-        # create temperature message
-        therm_msg: ROSTemperature = ROSTemperature(
-            header=rospy.Header(
-                # TODO: reuse the timestamp from the incoming message
-                stamp=rospy.Time.now(),
-                frame_id=imu.header.frame,
-            ),
-            temperature=imu.data["temperature"],
-        )
+        if "orientation" in imu.data.keys():
+            attitude : Attitude = imu.data['orientation']
+            x, y, z, w = tf.transformations.quaternion_from_euler(
+                attitude.roll,
+                attitude.pitch,
+                attitude.yaw
+            )
+
+            imu_msg.orientation = Quaternion(w=w, x=x, y=y, z=z)
+        
+        if "temperature" in imu.data.keys():
+            # create temperature message
+            therm_msg: ROSTemperature = ROSTemperature(
+                header=rospy.Header(
+                    # TODO: reuse the timestamp from the incoming message
+                    stamp=rospy.Time.now(),
+                    frame_id=imu.header.frame,
+                ),
+                temperature=imu.data["temperature"],
+            )
+            self.pub_therm.publish(therm_msg)
+
         # publish messages
         self.pub_imu.publish(imu_msg)
-        self.pub_therm.publish(therm_msg)
 
     async def worker(self):
         # create switchboard context
