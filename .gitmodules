@@ -1,0 +1,3 @@
+[submodule "libraries/duckietown-messages"]
+	path = libraries/duckietown-messages
+	url = https://github.com/duckietown/duckietown-messages/
