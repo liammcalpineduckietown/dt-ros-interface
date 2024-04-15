@@ -19,4 +19,9 @@
     </include>
 
     <!-- TODO: add missing nodes -->
+    <!-- Flight controller node -->
+    <include file="$(find flight_controller_driver)/launch/flight_controller_node.launch">
+        <arg name="veh" value="$(arg veh)"/>
+    </include>
+
 </launch>
