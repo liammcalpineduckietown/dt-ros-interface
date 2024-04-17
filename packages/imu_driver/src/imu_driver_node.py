@@ -27,12 +27,16 @@ class IMUNode(DTROS):
     def __init__(self):
         super(IMUNode, self).__init__(node_name="imu_node", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
+        self._robot_type = get_robot_type()
+
         # publishers initialization
         self.pub_imu = rospy.Publisher('~data', ROSImu, queue_size=10)
         self.pub_therm = rospy.Publisher('~temperature', ROSTemperature, queue_size=10)
+        if self._robot_type == RobotType.DUCKIEBOT:
+            self.pub_therm = rospy.Publisher('~temperature', ROSTemperature, queue_size=10)
+
         # user hardware test
         # self._hardware_test = HardwareTestIMU()
-        self._robot_type = get_robot_type()
         self._switchboard : Optional[DTPSContext] = None
 
         # ---
@@ -68,6 +72,8 @@ class IMUNode(DTROS):
                 ),
         )
 
+        self.pub_imu_raw.publish(imu_msg)
+
         if imu_data.orientation is not None:
             imu_msg.orientation = Quaternion(
                 w=imu_data.orientation.w,
@@ -76,8 +82,8 @@ class IMUNode(DTROS):
                 z=imu_data.orientation.z,
             )
 
-        # publish messages
-        self.pub_imu.publish(imu_msg)
+            # publish messages
+            self.pub_imu_data.publish(imu_msg)
 
     async def _publish_temperature(self, data: RawData):
         # Decode data
@@ -107,14 +113,12 @@ class IMUNode(DTROS):
         await imu_queue.subscribe(self._publish_imu)
         # ---
         await self.join()
-    
-    # TODO: run this worker concurrently with the main worker
+        
     async def worker_temperature(self):
-        if self._robot_type == RobotType.DUCKIEBOT:
-            # The duckiebot has a temperature sensor
-            temperature_queue = await (self._switchboard / "sensor" / "imu" / "temperature").until_ready()
-            # Subscribe
-            await temperature_queue.subscribe(self._publish_temperature)
+        # The duckiebot has a temperature sensor
+        temperature_queue = await (self._switchboard / "sensor" / "imu" / "temperature").until_ready()
+        # Subscribe
+        await temperature_queue.subscribe(self._publish_temperature)
 
         await self.join()
         
@@ -125,11 +129,18 @@ class IMUNode(DTROS):
 
     def spin(self):
         try:
-            asyncio.run(self.worker())
+            asyncio.run(self.main())
         except RuntimeError:
             if not self.is_shutdown:
                 self.logerr("An error occurred while running the event loop")
                 raise
+
+    async def main(self):
+        futures = [self.worker(),]
+        if self._robot_type == RobotType.DUCKIEBOT:
+            futures.append(self.worker_temperature())
+        
+        await asyncio.gather(*futures)
 
     def on_shutdown(self):
         loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
