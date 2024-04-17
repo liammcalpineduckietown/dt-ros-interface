@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
 import asyncio
-import tf
-from duckietown_messages.sensors.attitude import Attitude
+from typing import Optional
+from dt_robot_utils.constants import RobotType
+from dt_robot_utils.robot import get_robot_type
+from duckietown_messages.sensors.imu import Imu
+from duckietown_messages.sensors.temperature import Temperature
+from dtps.ergo_ui import DTPSContext
 import rospy
 
 from geometry_msgs.msg import Vector3, Quaternion
@@ -16,7 +20,6 @@ from dt_robot_utils import get_robot_name
 from dtps import context
 from dtps_http import RawData
 from duckietown.dtros import DTROS, NodeType
-from duckietown_messages.standard.dictionary import Dictionary
 from duckietown_messages.utils.exceptions import DataDecodingError
 
 
@@ -29,61 +32,92 @@ class IMUNode(DTROS):
         self.pub_therm = rospy.Publisher('~temperature', ROSTemperature, queue_size=10)
         # user hardware test
         # self._hardware_test = HardwareTestIMU()
+        self._robot_type = get_robot_type()
+        self._switchboard : Optional[DTPSContext] = None
+
         # ---
         self.loginfo("Initialized.")
 
-    async def publish(self, data: RawData):
+    async def _publish_imu(self, data: RawData):
         # TODO: only publish if somebody is listening
         # decode data
+        imu_data : Optional[Imu] = None
+
         try:
-            imu: Dictionary = Dictionary.from_rawdata(data)
+            imu_data = Imu.from_rawdata(data)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
+
         # create IMU message
         imu_msg: ROSImu = ROSImu(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message
                 stamp=rospy.Time.now(),
-                frame_id=imu.header.frame,
+                frame_id=imu_data.header.frame,
             ),
-            linear_acceleration=Vector3(*imu.data["linear_accelerations"]),
-            angular_velocity=Vector3(*imu.data["angular_velocities"]),
-        )
-        if "orientation" in imu.data.keys():
-            attitude : Attitude = imu.data['orientation']
-            x, y, z, w = tf.transformations.quaternion_from_euler(
-                attitude.roll,
-                attitude.pitch,
-                attitude.yaw
-            )
-
-            imu_msg.orientation = Quaternion(w=w, x=x, y=y, z=z)
-        
-        if "temperature" in imu.data.keys():
-            # create temperature message
-            therm_msg: ROSTemperature = ROSTemperature(
-                header=rospy.Header(
-                    # TODO: reuse the timestamp from the incoming message
-                    stamp=rospy.Time.now(),
-                    frame_id=imu.header.frame,
+            linear_acceleration=Vector3(
+                x=imu_data.linear_acceleration.x,
+                y=imu_data.linear_acceleration.y,
+                z=imu_data.linear_acceleration.z,
+            ),
+            angular_velocity=Vector3(
+                x=imu_data.angular_velocity.x,
+                y=imu_data.angular_velocity.y,
+                z=imu_data.angular_velocity.z,
                 ),
-                temperature=imu.data["temperature"],
+        )
+
+        if imu_data.orientation is not None:
+            imu_msg.orientation = Quaternion(
+                w=imu_data.orientation.w,
+                x=imu_data.orientation.x,
+                y=imu_data.orientation.y,
+                z=imu_data.orientation.z,
             )
-            self.pub_therm.publish(therm_msg)
 
         # publish messages
         self.pub_imu.publish(imu_msg)
 
+    async def _publish_temperature(self, data: RawData):
+        # Decode data
+        temperature_data : Temperature = Temperature.from_rawdata(data)
+            
+        # create temperature message
+        therm_msg: ROSTemperature = ROSTemperature(
+            header=rospy.Header(
+                # TODO: reuse the timestamp from the incoming message
+                stamp=rospy.Time.now(),
+            ),
+            temperature=temperature_data.data
+        )
+        self.pub_therm.publish(therm_msg)
+        
     async def worker(self):
         # create switchboard context
-        switchboard = (await context("switchboard")).navigate(self._robot_name)
+        self._switchboard = (await context("switchboard")).navigate(self._robot_name)
+
         # IMU queue
-        imu = await (switchboard / "sensor" / "imu" / "raw").until_ready()
+        if self._robot_type == RobotType.DUCKIEDRONE:
+            imu_queue = await (self._switchboard / "sensor" / "imu" / "data").until_ready()  
+        else:
+            imu_queue = await (self._switchboard / "sensor" / "imu" / "data_raw").until_ready()
+
         # subscribe
-        await imu.subscribe(self.publish)
+        await imu_queue.subscribe(self._publish_imu)
         # ---
         await self.join()
+    
+    # TODO: run this worker concurrently with the main worker
+    async def worker_temperature(self):
+        if self._robot_type == RobotType.DUCKIEBOT:
+            # The duckiebot has a temperature sensor
+            temperature_queue = await (self._switchboard / "sensor" / "imu" / "temperature").until_ready()
+            # Subscribe
+            await temperature_queue.subscribe(self._publish_temperature)
+
+        await self.join()
+        
 
     async def join(self):
         while not self.is_shutdown:
