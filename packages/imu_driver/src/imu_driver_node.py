@@ -25,13 +25,15 @@ from duckietown_messages.utils.exceptions import DataDecodingError
 
 class IMUNode(DTROS):
     def __init__(self):
-        super(IMUNode, self).__init__(node_name="imu_node", node_type=NodeType.DRIVER)
+        super(IMUNode, self).__init__(node_name="imu", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
         self._robot_type = get_robot_type()
 
         # publishers initialization
-        self.pub_imu = rospy.Publisher('~data', ROSImu, queue_size=10)
-        self.pub_therm = rospy.Publisher('~temperature', ROSTemperature, queue_size=10)
+        self.pub_imu_raw = rospy.Publisher('~raw', ROSImu, queue_size=10)
+        if self._robot_type == RobotType.DUCKIEDRONE:
+            self.pub_imu_data = rospy.Publisher('~data', ROSImu, queue_size=10)
+        
         if self._robot_type == RobotType.DUCKIEBOT:
             self.pub_therm = rospy.Publisher('~temperature', ROSTemperature, queue_size=10)
 
