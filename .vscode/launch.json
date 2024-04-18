@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "IMU node",
+            "request": "launch",
+            "target": "/code/src/dt-ros-interface/packages/imu_driver/launch/imu_driver_node.launch",
+            "launch": [
+                "rviz",
+                "gz",
+                "gzclient",
+                "gzserver"
+            ],
+            "type": "ros",
+            "arguments": [
+                "veh:=${env:VEHICLE_NAME}",
+            ]
+        }
+    ]
+}
