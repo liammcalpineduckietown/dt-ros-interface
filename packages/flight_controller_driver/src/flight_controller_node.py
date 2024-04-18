@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
-from email import message
 from typing import Optional
 from duckietown_messages.actuators.drone_motor_command import DroneMotorCommand
 from dtps.ergo_ui import DTPSContext
 
-from duckietown_messages.sensors.attitude import Attitude
 import rospy
-
 
 from dt_robot_utils import get_robot_name
 from dtps import context
