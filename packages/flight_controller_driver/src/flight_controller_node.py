@@ -139,9 +139,9 @@ class FlightControllerNode(DTROS):
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
+
         # create ROS message
         msg = DroneControlROS()
-        msg.header.stamp = rospy.Time.now()
         msg.roll = commands.roll
         msg.pitch = commands.pitch
         msg.yaw = commands.yaw
@@ -189,7 +189,6 @@ class FlightControllerNode(DTROS):
             return
 
         mode = DroneModeMsg(mode=req.mode.mode)
-
         raw_data = asyncio.run_coroutine_threadsafe(
             self._set_mode_queue.call(
                     mode.to_rawdata()
@@ -231,11 +230,11 @@ class FlightControllerNode(DTROS):
 
     def _heartbeat_joystick_cb(self, _):
         """ Update joystick heartbeat """
-        self.publish_raw_data(self, RawData(b"", "text/plain"), self._hb_joystick_queue)
+        self.publish_raw_data(RawData(b"", "text/plain"), self._hb_joystick_queue)
 
     def _heartbeat_pid_cb(self, _):
         """ Update pid_controller heartbeat """
-        self.publish_raw_data(self, RawData(b"", "text/plain"), self._hb_pid_queue)
+        self.publish_raw_data(RawData(b"", "text/plain"), self._hb_pid_queue)
 
     def _heartbeat_altitude_cb(self, _):
         """ Update altitude sensor heartbeat """
@@ -243,7 +242,7 @@ class FlightControllerNode(DTROS):
 
     def _heartbeat_state_estimator_cb(self, _):
         """ Update state_estimator heartbeat """
-        self.publish_raw_data(self, RawData(b"", "text/plain"), self._hb_state_estimator_queue)
+        self.publish_raw_data(RawData(b"", "text/plain"), self._hb_state_estimator_queue)
         
     def spin(self):
         try:

@@ -18,6 +18,21 @@
             "arguments": [
                 "veh:=${env:VEHICLE_NAME}",
             ]
+        },
+        {
+            "name": "FC node",
+            "request": "launch",
+            "target": "/code/src/dt-ros-interface/packages/flight_controller_driver/launch/flight_controller_driver_node.launch",
+            "launch": [
+                "rviz",
+                "gz",
+                "gzclient",
+                "gzserver"
+            ],
+            "type": "ros",
+            "arguments": [
+                "veh:=${env:VEHICLE_NAME}",
+            ]
         }
     ]
 }
