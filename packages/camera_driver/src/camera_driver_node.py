@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import asyncio
 
 import rospy
@@ -25,7 +26,7 @@ class CameraNode(DTROS):
 
     """
 
-    def __init__(self):
+    def __init__(self, camera_name: str = "front_center"):
         # Initialize the DTROS parent class
         super(CameraNode, self).__init__(
             node_name="camera",
@@ -33,7 +34,7 @@ class CameraNode(DTROS):
             help="Reads a stream of images from a camera and publishes the frames over ROS",
         )
         self._robot_name = get_robot_name()
-
+        self._camera_name = camera_name
         # user hardware test
         # self._hardware_test = HardwareTestCamera()
 
@@ -107,8 +108,8 @@ class CameraNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for camera to be ready
-        jpeg = await (switchboard / "sensor" / "camera" / "jpeg").until_ready()
-        parameters = await (switchboard / "sensor" / "camera" / "parameters").until_ready()
+        jpeg = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
+        parameters = await (switchboard / "sensor" / "camera" / self._camera_name / "parameters").until_ready()
         # wait for camera parameters then publish
         rdata: RawData = await parameters.data_get()
         await self.publish_camera_info(rdata)
@@ -131,7 +132,11 @@ class CameraNode(DTROS):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--camera", help="The camera to use", default="front_center", type=str)
+    args = parser.parse_args()
+    
     # initialize the node
-    camera_node = CameraNode()
+    camera_node = CameraNode(camera_name=args.camera)
     # keep the node alive
     camera_node.spin()
