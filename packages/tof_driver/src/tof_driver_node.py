@@ -57,7 +57,10 @@ class ToFNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # ToF queue
-        tof = await (switchboard / "sensor" / "time-of-flight" / self._sensor_name / "range").until_ready()
+        self.loginfo(
+            f'Subscribing to the dtps topic for ToF sensor "{self._sensor_name}": {switchboard / "sensor" / "time_of_flight" / self._sensor_name / "range"}'
+            )
+        tof = await (switchboard / "sensor" / "time_of_flight" / self._sensor_name / "range").until_ready()
         # subscribe
         await tof.subscribe(self.publish)
         # ---
