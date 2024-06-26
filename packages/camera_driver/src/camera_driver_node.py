@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import asyncio
 
 import rospy
@@ -132,11 +131,7 @@ class CameraNode(DTROS):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--camera", help="The camera to use", default="front_center", type=str)
-    args = parser.parse_args()
-    
     # initialize the node
-    camera_node = CameraNode(camera_name=args.camera)
+    camera_node = CameraNode()
     # keep the node alive
     camera_node.spin()
