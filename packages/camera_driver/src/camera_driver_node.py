@@ -8,7 +8,7 @@ from duckietown.dtros import DTROS, NodeType, TopicType
 from sensor_msgs.msg import CompressedImage as ROSCompressedImage, CameraInfo as ROSCameraInfo
 
 from dt_robot_utils import get_robot_name
-from dtps import context
+from dtps import context, ContextConfig
 from dtps_http import RawData
 from duckietown_messages.sensors.camera import Camera
 from duckietown_messages.sensors.compressed_image import CompressedImage
@@ -107,7 +107,9 @@ class CameraNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for camera to be ready
-        jpeg = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
+        jpeg  = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
+        jpeg = jpeg.configure(ContextConfig(patient=True))
+
         parameters = await (switchboard / "sensor" / "camera" / self._camera_name / "parameters").until_ready()
         # wait for camera parameters then publish
         rdata: RawData = await parameters.data_get()
