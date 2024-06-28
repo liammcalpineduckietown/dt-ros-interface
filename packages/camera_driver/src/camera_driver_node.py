@@ -11,6 +11,7 @@ from dt_robot_utils import get_robot_name
 from dtps import context, ContextConfig
 from dtps_http import RawData
 from duckietown_messages.sensors.camera import Camera
+from duckietown_messages.calibrations.camera_intrinsic import CameraIntrinsicCalibration
 from duckietown_messages.sensors.compressed_image import CompressedImage
 from duckietown_messages.utils.exceptions import DataDecodingError
 
@@ -36,6 +37,7 @@ class CameraNode(DTROS):
         self._camera_name = camera_name
         # user hardware test
         # self._hardware_test = HardwareTestCamera()
+        self.camera_info : Camera = None
 
         # Setup publishers
         self._has_published: bool = False
@@ -88,18 +90,23 @@ class CameraNode(DTROS):
 
     async def publish_camera_info(self, rdata: RawData):
         try:
-            camera: Camera = Camera.from_rawdata(rdata)
+            camera: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
+        
+        if self.camera_info is None:
+            self.logwarn("Camera information not available yet.")
+            return
+
         msg: ROSCameraInfo = ROSCameraInfo(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message
                 stamp=self.time,
                 frame_id=camera.header.frame,
             ),
-            width=camera.width,
-            height=camera.height,
+            width=self.camera_info.width,
+            height=self.camera_info.height,
             distortion_model="plumb_bob",
             D=camera.D,
             K=camera.K,
@@ -108,22 +115,43 @@ class CameraNode(DTROS):
         )
         self.pub_camera_info.publish(msg)
 
+    async def save_camera_info(self, rdata: RawData):
+        """
+        Get the camera specification and save it to a variable.
+        """
+        try:
+            camera: Camera = Camera.from_rawdata(rdata)
+        except DataDecodingError as e:
+            self.logerr(f"Failed to decode an incoming message: {e.message}")
+            self.logwarn("Camera information not available yet.")
+            return
+        
+        if self.camera_info is None:
+            self.log("Received camera information.")
+
+        self.camera_info = camera
+        
     async def worker(self):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for camera to be ready
         jpeg  = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
-        jpeg = jpeg.configure(ContextConfig(patient=True))
-
         parameters = await (switchboard / "sensor" / "camera" / self._camera_name / "parameters").until_ready()
-        # wait for camera parameters then publish
-        rdata: RawData = await parameters.data_get()
-        await self.publish_camera_info(rdata)
+        info = await (switchboard / "sensor" / "camera" / self._camera_name / "info").until_ready()
+
+        # Enable dynamic reconnection to the topic
+        jpeg = jpeg.configure(ContextConfig(patient=True))
+        parameters = parameters.configure(ContextConfig(patient=True))
+        info.configure(ContextConfig(patient=True))
+        
         # subscribe
+        await info.subscribe(self.save_camera_info)
+        await parameters.subscribe(self.publish_camera_info)
         await jpeg.subscribe(self.publish)
         # ---
         await self.join()
 
+    
     async def join(self):
         while not self.is_shutdown:
             await asyncio.sleep(1)
