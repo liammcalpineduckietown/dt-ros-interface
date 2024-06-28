@@ -46,6 +46,8 @@ class CameraNode(DTROS):
             dt_topic_type=TopicType.DRIVER,
             dt_help="The stream of JPEG compressed images from the camera",
         )
+        self.time = rospy.Time.now()
+
         self.pub_camera_info = rospy.Publisher(
             "~camera_info",
             ROSCameraInfo,
@@ -58,6 +60,9 @@ class CameraNode(DTROS):
         self.loginfo("Initialized.")
 
     async def publish(self, data: RawData):
+        # Update the timestamp
+        self.time = rospy.Time.now()
+
         # TODO: only publish if somebody is listening
         try:
             jpeg: CompressedImage = CompressedImage.from_rawdata(data)
@@ -68,7 +73,7 @@ class CameraNode(DTROS):
         msg: ROSCompressedImage = ROSCompressedImage(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message
-                stamp=rospy.Time.now(),
+                stamp=self.time,
                 frame_id=jpeg.header.frame,
             ),
             format=jpeg.format,
@@ -90,7 +95,7 @@ class CameraNode(DTROS):
         msg: ROSCameraInfo = ROSCameraInfo(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message
-                stamp=rospy.Time.now(),
+                stamp=self.time,
                 frame_id=camera.header.frame,
             ),
             width=camera.width,
