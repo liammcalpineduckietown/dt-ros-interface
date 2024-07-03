@@ -3,7 +3,7 @@
 import asyncio
 from typing import Optional
 from duckietown_messages.actuators.drone_motor_command import DroneMotorCommand
-from dtps.ergo_ui import DTPSContext
+from dtps.ergo_ui import ContextConfig, DTPSContext
 
 import rospy
 
@@ -87,11 +87,19 @@ class FlightControllerNode(DTROS):
         mode_queue = await (self.switchboard / "flight_controller" / "mode" / "current").until_ready()
 
         # Subscribe
-        await battery_queue.subscribe(self.publish_battery)
-        await motors_queue.subscribe(self.publish_motor_pwm)
-        await executed_commands_queue.subscribe(self.publish_commands)
-        await mode_queue.subscribe(self.publish_mode)
-        
+        await battery_queue.configure(ContextConfig(patient=True)).subscribe(
+            self.publish_battery
+        )
+        await motors_queue.configure(ContextConfig(patient=True)).subscribe(
+            self.publish_motor_pwm
+        )
+        await executed_commands_queue.configure(ContextConfig(patient=True)).subscribe(
+            self.publish_commands
+        )
+        await mode_queue.configure(ContextConfig(patient=True)).subscribe(
+            self.publish_mode
+        )
+
         # ---
         self._loop = asyncio.get_event_loop()
         await self.join()

@@ -2,6 +2,7 @@
 
 import asyncio
 
+from dtps.ergo_ui import ContextConfig
 import rospy
 from sensor_msgs.msg import Range as ROSRange
 
@@ -60,7 +61,12 @@ class ToFNode(DTROS):
         self.loginfo(
             f'Subscribing to the dtps topic for ToF sensor "{self._sensor_name}": {switchboard / "sensor" / "time_of_flight" / self._sensor_name / "range"}'
             )
-        tof = await (switchboard / "sensor" / "time_of_flight" / self._sensor_name / "range").until_ready()
+        tof = (
+            await (
+                switchboard / "sensor" / "time_of_flight" / self._sensor_name / "range"
+            ).until_ready()
+        ).configure(ContextConfig(patient=True))
+
         # subscribe
         await tof.subscribe(self.publish)
         # ---
