@@ -6,7 +6,7 @@ from dt_robot_utils.constants import RobotType
 from dt_robot_utils.robot import get_robot_type
 from duckietown_messages.sensors.imu import Imu
 from duckietown_messages.sensors.temperature import Temperature
-from dtps.ergo_ui import DTPSContext
+from dtps.ergo_ui import ContextConfig, DTPSContext
 import rospy
 
 from geometry_msgs.msg import Vector3, Quaternion
@@ -112,7 +112,9 @@ class IMUNode(DTROS):
             imu_queue = await (self._switchboard / "sensor" / "imu" / "data_raw").until_ready()
 
         # subscribe
-        await imu_queue.subscribe(self._publish_imu)
+        await imu_queue.configure(ContextConfig(patient=True)).subscribe(
+            self._publish_imu
+        )
         # ---
         await self.join()
         
@@ -120,7 +122,9 @@ class IMUNode(DTROS):
         # The duckiebot has a temperature sensor
         temperature_queue = await (self._switchboard / "sensor" / "imu" / "temperature").until_ready()
         # Subscribe
-        await temperature_queue.subscribe(self._publish_temperature)
+        await temperature_queue.configure(ContextConfig(patient=True)).subscribe(
+            self._publish_temperature
+        )
 
         await self.join()
         
