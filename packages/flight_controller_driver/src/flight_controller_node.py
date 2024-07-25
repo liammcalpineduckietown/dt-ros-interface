@@ -166,7 +166,6 @@ class FlightControllerNode(DTROS):
             return
         # create ROS message
         mode_msg_ros = DroneModeROS()
-        mode_msg_ros.header.stamp = rospy.Time.now()
         mode_msg_ros.mode = mode_msg.mode
         # publish messages
         self._mode_pub.publish(mode_msg_ros)
