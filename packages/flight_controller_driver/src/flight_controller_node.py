@@ -184,7 +184,7 @@ class FlightControllerNode(DTROS):
             throttle = msg.throttle
         )
         # send message
-        self.publish_raw_data(self, commands.to_rawdata(), self._commands)
+        self.publish_raw_data(commands.to_rawdata(), self._commands)
 
     async def join(self):
         while not self.is_shutdown:
