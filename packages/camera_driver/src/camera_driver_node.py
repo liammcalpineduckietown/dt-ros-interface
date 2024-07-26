@@ -110,7 +110,7 @@ class CameraNode(DTROS):
             self.log("Published the first image.")
             self._has_published = True
 
-    async def update_camera_intrinsics(self, rdata: RawData):
+    async def save_camera_intrinsics(self, rdata: RawData):
         try:
             camera_intrinsics: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
         except DataDecodingError as e:
@@ -151,7 +151,7 @@ class CameraNode(DTROS):
         
         # subscribe
         await info.subscribe(self.save_camera_info)
-        await parameters.subscribe(self.update_camera_intrinsics)
+        await parameters.subscribe(self.save_camera_intrinsics)
         await jpeg.subscribe(self.publish)
         # ---
         await self.join()
