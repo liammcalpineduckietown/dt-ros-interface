@@ -30,11 +30,15 @@ class FlightControllerNode(DTROS):
         super(FlightControllerNode, self).__init__(node_name="flight_controller_node", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
 
+        # event loop
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self.switchboard : Optional[DTPSContext] = None
+
         # publishers initialization
         self._motor_pub = rospy.Publisher("~motors", DroneMotorCommandROS, queue_size=1)
         self._bat_pub = rospy.Publisher("~battery", BatteryStateROS, queue_size=1)
         self._mode_pub = rospy.Publisher("~mode/current", DroneModeROS, queue_size=1, latch=True)
-        self._commands_pub = rospy.Publisher('~commands/executed', DroneControlROS, queue_size=1)
+        self._executed_commands_pub = rospy.Publisher('~commands/executed', DroneControlROS, queue_size=1)
         
         # subscribers initialization
         rospy.Subscriber('~commands', DroneControlROS, self._fly_commands_cb, queue_size=1)
@@ -59,10 +63,7 @@ class FlightControllerNode(DTROS):
         self._set_mode_queue: Optional[DTPSContext] = None
         self._calibrate_imu_queue: Optional[DTPSContext] = None
         self._zero_yaw_queue: Optional[DTPSContext] = None
-        
-        # event loop
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self.switchboard : Optional[DTPSContext] = None
+
         # ---
         self.loginfo("Initialized.")
 
@@ -94,7 +95,7 @@ class FlightControllerNode(DTROS):
             self.publish_motor_pwm
         )
         await executed_commands_queue.configure(ContextConfig(patient=True)).subscribe(
-            self.publish_commands
+            self.publish_executed_commands
         )
         await mode_queue.configure(ContextConfig(patient=True)).subscribe(
             self.publish_mode
@@ -120,7 +121,7 @@ class FlightControllerNode(DTROS):
 
     async def publish_motor_pwm(self, data: RawData):
         """
-        Receives a message of type DroneControl from ROS and publishes it to the DTPS network
+        Receives a message of type DroneControl from DTPS and publishes it to the ROS topic
         """
         # decode data
         try:
@@ -140,7 +141,7 @@ class FlightControllerNode(DTROS):
         # publish messages
         self._motor_pub.publish(motor_msg_ros)
         
-    async def publish_commands(self, data: RawData):
+    async def publish_executed_commands(self, data: RawData):
         # decode data
         try:
             commands = DroneControl.from_rawdata(data)
@@ -155,7 +156,7 @@ class FlightControllerNode(DTROS):
         msg.yaw = commands.yaw
         msg.throttle = commands.throttle
         # publish
-        self._commands_pub.publish(msg)
+        self._executed_commands_pub.publish(msg)
 
     async def publish_mode(self, data: RawData):
         # decode data
@@ -172,10 +173,11 @@ class FlightControllerNode(DTROS):
 
     def _fly_commands_cb(self, msg: DroneControlROS):
         """
-        Callback for the ~commands topic
+        Callback for the ~commands topic, publishes the received message to the DTPS queue
         """
         if self._loop is None:
             return
+        
         # create message
         commands = DroneControl(
             roll = msg.roll,
@@ -185,6 +187,7 @@ class FlightControllerNode(DTROS):
         )
         # send message
         self.publish_raw_data(commands.to_rawdata(), self._commands)
+        print(f"Publishing received commands:\n{commands}")
 
     async def join(self):
         while not self.is_shutdown:
@@ -271,6 +274,7 @@ class FlightControllerNode(DTROS):
         Utility method to publish raw data to a DTPS queue in a thread-safe manner.
         """
         if self._loop is None:
+            print("tried to publish but loop is None")
             return
         else:
             asyncio.run_coroutine_threadsafe(queue.publish(rd), self._loop)
