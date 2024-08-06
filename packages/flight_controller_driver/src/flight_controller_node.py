@@ -187,7 +187,7 @@ class FlightControllerNode(DTROS):
         )
         # send message
         self.publish_raw_data(commands.to_rawdata(), self._commands)
-        print(f"Publishing received commands:\n{commands}")
+        rospy.logdebug(f"Publishing received commands:\n{commands}")
 
     async def join(self):
         while not self.is_shutdown:
