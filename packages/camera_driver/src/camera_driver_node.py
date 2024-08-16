@@ -38,7 +38,6 @@ class CameraNode(DTROS):
         # user hardware test
         # self._hardware_test = HardwareTestCamera()
         self.camera_info : Camera = None
-        self.camera_intrinsics : CameraIntrinsicCalibration = None
 
         # Setup publishers
         self._has_published: bool = False
@@ -66,25 +65,6 @@ class CameraNode(DTROS):
         # Update the timestamp
         self.time = rospy.Time.now()
 
-        if self.camera_info is None or self.camera_intrinsics is None:
-            self.logwarn("Camera information not available yet.")
-            return
-
-        msg: ROSCameraInfo = ROSCameraInfo(
-            header=rospy.Header(
-                # TODO: reuse the timestamp from the incoming message
-                stamp=self.time,
-                frame_id=self.camera_intrinsics.header.frame,
-            ),
-            width=self.camera_info.width,
-            height=self.camera_info.height,
-            distortion_model="plumb_bob",
-            D=self.camera_intrinsics.D,
-            K=self.camera_intrinsics.K,
-            R=self.camera_intrinsics.R,
-            P=self.camera_intrinsics.P,
-        )
-
         # TODO: only publish if somebody is listening
         try:
             jpeg: CompressedImage = CompressedImage.from_rawdata(data)
@@ -103,22 +83,37 @@ class CameraNode(DTROS):
         )
         # publish image
         self.pub_img.publish(msg)
-        self.pub_camera_info.publish(msg)
-
         # ---
         if not self._has_published:
             self.log("Published the first image.")
             self._has_published = True
 
-    async def save_camera_intrinsics(self, rdata: RawData):
+    async def publish_camera_info(self, rdata: RawData):
         try:
-            camera_intrinsics: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
+            camera: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
         
-        # Save the camera intrinsics
-        self.camera_intrinsics = camera_intrinsics
+        if self.camera_info is None:
+            self.logwarn("Camera information not available yet.")
+            return
+
+        msg: ROSCameraInfo = ROSCameraInfo(
+            header=rospy.Header(
+                # TODO: reuse the timestamp from the incoming message
+                stamp=self.time,
+                frame_id=camera.header.frame,
+            ),
+            width=self.camera_info.width,
+            height=self.camera_info.height,
+            distortion_model="plumb_bob",
+            D=camera.D,
+            K=camera.K,
+            R=camera.R,
+            P=camera.P,
+        )
+        self.pub_camera_info.publish(msg)
 
     async def save_camera_info(self, rdata: RawData):
         """
@@ -151,7 +146,7 @@ class CameraNode(DTROS):
         
         # subscribe
         await info.subscribe(self.save_camera_info)
-        await parameters.subscribe(self.save_camera_intrinsics)
+        await parameters.subscribe(self.publish_camera_info)
         await jpeg.subscribe(self.publish)
         # ---
         await self.join()
