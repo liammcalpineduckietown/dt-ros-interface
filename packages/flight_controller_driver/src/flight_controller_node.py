@@ -73,14 +73,22 @@ class FlightControllerNode(DTROS):
         
         # Await queues to be ready
         self._commands = await (self.switchboard / "flight_controller" / "commands").until_ready()
-        self._set_mode_queue = await (self.switchboard / "flight_controller" / "mode" / "set").until_ready()
-        self._calibrate_imu_queue = await (self.switchboard / "imu" / "calibrate").until_ready()
-        self._zero_yaw_queue = await (self.switchboard / "imu" / "zero_yaw").until_ready()
- 
+
+        # WORKAROUND: Temporary until the switchboard is fixed
+        rpc_call_context = await context("rpc", environment={"DTPS_BASE_RPC":"http://localhost:2120/"})
+
+        self.loginfo("RPC context created")
+
+        self._set_mode_queue = await (rpc_call_context / "flight_controller" / "mode" / "set").until_ready()
+        self._calibrate_imu_queue = await (rpc_call_context / "imu" / "calibrate").until_ready()
+        self._zero_yaw_queue = await (rpc_call_context / "imu" / "zero_yaw").until_ready()
+        # END WORKAROUND
+
         self._hb_joystick_queue = await (self.switchboard / "heartbeat" / "joystick").until_ready()
         self._hb_pid_queue = await (self.switchboard / "heartbeat" / "pid").until_ready()
         self._hb_altitude_queue = await (self.switchboard / "heartbeat" / "altitude").until_ready()
         self._hb_state_estimator_queue = await (self.switchboard / "heartbeat" / "state_estimator").until_ready()
+        self.loginfo("RPC context initialized")
         
         battery_queue = await (self.switchboard / "sensor" / "battery").until_ready()
         motors_queue = await (self.switchboard / "actuator" / "motors").until_ready()
@@ -103,6 +111,7 @@ class FlightControllerNode(DTROS):
 
         # ---
         self._loop = asyncio.get_event_loop()
+        self.loginfo("Event loop initialized")
         await self.join()
 
     async def publish_battery(self, data: RawData):
@@ -238,20 +247,39 @@ class FlightControllerNode(DTROS):
 
     # heartbeat callbacks: These update the last time that data was received from a node
 
+    # def _heartbeat_cb(self, queue : DTPSContext):
+    #     """ Update heartbeat """
+    #     if self._loop is None:
+    #         self.logdebug("Loop is None")
+    #         return
+    #     self.publish_raw_data(RawData(b"", "text/plain"), queue)
+
     def _heartbeat_joystick_cb(self, _):
         """ Update joystick heartbeat """
+        if self._loop is None:
+            self.logdebug("Loop is None")
+            return
         self.publish_raw_data(RawData(b"", "text/plain"), self._hb_joystick_queue)
 
     def _heartbeat_pid_cb(self, _):
         """ Update pid_controller heartbeat """
+        if self._loop is None:
+            self.logdebug("Loop is None")
+            return
         self.publish_raw_data(RawData(b"", "text/plain"), self._hb_pid_queue)
 
     def _heartbeat_altitude_cb(self, _):
         """ Update altitude sensor heartbeat """
+        if self._loop is None:
+            self.logdebug("Loop is None")
+            return
         self.publish_raw_data(RawData(b"", "text/plain"), self._hb_altitude_queue)
 
     def _heartbeat_state_estimator_cb(self, _):
         """ Update state_estimator heartbeat """
+        if self._loop is None:
+            self.logdebug("Loop is None")
+            return
         self.publish_raw_data(RawData(b"", "text/plain"), self._hb_state_estimator_queue)
         
     def spin(self):
