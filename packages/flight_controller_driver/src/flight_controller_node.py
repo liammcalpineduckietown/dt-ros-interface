@@ -96,16 +96,16 @@ class FlightControllerNode(DTROS):
         mode_queue = await (self.switchboard / "flight_controller" / "mode" / "current").until_ready()
 
         # Subscribe
-        await battery_queue.configure(ContextConfig(patient=True)).subscribe(
+        await battery_queue.subscribe(
             self.publish_battery
         )
-        await motors_queue.configure(ContextConfig(patient=True)).subscribe(
+        await motors_queue.subscribe(
             self.publish_motor_pwm
         )
-        await executed_commands_queue.configure(ContextConfig(patient=True)).subscribe(
+        await executed_commands_queue.subscribe(
             self.publish_executed_commands
         )
-        await mode_queue.configure(ContextConfig(patient=True)).subscribe(
+        await mode_queue.subscribe(
             self.publish_mode
         )
 
@@ -152,8 +152,9 @@ class FlightControllerNode(DTROS):
         
     async def publish_executed_commands(self, data: RawData):
         # decode data
+        self.logdebug(f"Received executed commands:\n{data}")
         try:
-            commands = DroneControl.from_rawdata(data)
+            commands : DroneControl = DroneControl.from_rawdata(data)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
@@ -166,6 +167,7 @@ class FlightControllerNode(DTROS):
         msg.throttle = commands.throttle
         # publish
         self._executed_commands_pub.publish(msg)
+        self.logdebug(f"Published executed commands:\n{commands}")
 
     async def publish_mode(self, data: RawData):
         # decode data
