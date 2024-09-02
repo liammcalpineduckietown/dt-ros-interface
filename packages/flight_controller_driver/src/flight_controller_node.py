@@ -152,8 +152,9 @@ class FlightControllerNode(DTROS):
         
     async def publish_executed_commands(self, data: RawData):
         # decode data
+        self.logdebug(f"Received executed commands:\n{data}")
         try:
-            commands = DroneControl.from_rawdata(data)
+            commands : DroneControl = DroneControl.from_rawdata(data)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
@@ -166,6 +167,7 @@ class FlightControllerNode(DTROS):
         msg.throttle = commands.throttle
         # publish
         self._executed_commands_pub.publish(msg)
+        self.logdebug(f"Published executed commands:\n{commands}")
 
     async def publish_mode(self, data: RawData):
         # decode data
