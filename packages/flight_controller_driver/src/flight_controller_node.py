@@ -96,16 +96,16 @@ class FlightControllerNode(DTROS):
         mode_queue = await (self.switchboard / "flight_controller" / "mode" / "current").until_ready()
 
         # Subscribe
-        await battery_queue.configure(ContextConfig(patient=True)).subscribe(
+        await battery_queue.subscribe(
             self.publish_battery
         )
-        await motors_queue.configure(ContextConfig(patient=True)).subscribe(
+        await motors_queue.subscribe(
             self.publish_motor_pwm
         )
-        await executed_commands_queue.configure(ContextConfig(patient=True)).subscribe(
+        await executed_commands_queue.subscribe(
             self.publish_executed_commands
         )
-        await mode_queue.configure(ContextConfig(patient=True)).subscribe(
+        await mode_queue.subscribe(
             self.publish_mode
         )
 
