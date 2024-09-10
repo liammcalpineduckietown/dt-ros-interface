@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+from typing import Optional
 
 import rospy
 from duckietown.dtros import DTROS, NodeType, TopicType
@@ -37,7 +38,7 @@ class CameraNode(DTROS):
         self._camera_name = camera_name
         # user hardware test
         # self._hardware_test = HardwareTestCamera()
-        self.camera_info : Camera = None
+        self.camera_info: Optional[Camera] = None
 
         # Setup publishers
         self._has_published: bool = False
@@ -135,7 +136,7 @@ class CameraNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for camera to be ready
-        jpeg  = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
+        jpeg = await (switchboard / "sensor" / "camera" / self._camera_name / "jpeg").until_ready()
         parameters = await (switchboard / "sensor" / "camera" / self._camera_name / "parameters").until_ready()
         info = await (switchboard / "sensor" / "camera" / self._camera_name / "info").until_ready()
 
@@ -150,7 +151,6 @@ class CameraNode(DTROS):
         await jpeg.subscribe(self.publish)
         # ---
         await self.join()
-
     
     async def join(self):
         while not self.is_shutdown:
