@@ -32,10 +32,11 @@ class WheelsDriverNode(DTROS):
 
     """
 
-    def __init__(self):
+    def __init__(self, actuator_name: str = "base"):
         # Initialize the DTROS parent class
         super(WheelsDriverNode, self).__init__(node_name="wheels_driver", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
+        self._actuator_name = actuator_name
         # publishers
         self.pub_wheels_cmd = rospy.Publisher(
             "~wheels_cmd_executed", WheelsCmdStamped, queue_size=1, dt_topic_type=TopicType.DRIVER
@@ -115,11 +116,15 @@ class WheelsDriverNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wheels PWM signal
-        pwm_filtered = await (switchboard / "actuator" / "wheels" / "pwm_filtered").until_ready()
+        self.loginfo("Waiting for the DTPS queue 'pwm' to come online")
+        self._pwm = await (switchboard / "actuator" / "wheels" / self._actuator_name / "pwm").until_ready()
+        self.loginfo("Waiting for the DTPS queue 'pwm_filtered' to come online")
+        pwm_filtered = await (switchboard / "actuator" / "wheels" / self._actuator_name / "pwm_filtered").until_ready()
         # emergency stop
-        self._estop = await (switchboard / "actuator" / "wheels" / "estop").until_ready()
-        self._pwm = await (switchboard / "actuator" / "wheels" / "pwm").until_ready()
+        self.loginfo("Waiting for the DTPS queue 'estop' to come online")
+        self._estop = await (switchboard / "actuator" / "wheels" / self._actuator_name / "estop").until_ready()
         # subscribe
+        self.loginfo("Subscribing to the 'pwm_filtered' queue")
         await pwm_filtered.subscribe(self.publish_executed)
         # ---
         self._loop = asyncio.get_event_loop()
