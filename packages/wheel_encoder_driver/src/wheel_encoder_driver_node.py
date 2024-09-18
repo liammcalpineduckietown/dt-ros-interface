@@ -89,7 +89,7 @@ class WheelEncoderNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wheel encoder queue
-        encoder = await (switchboard / "sensor" / "wheel-encoder" / self._wheel).until_ready()
+        encoder = await (switchboard / "sensor" / "wheel_encoder" / self._wheel / "ticks").until_ready()
         # subscribe
         await encoder.subscribe(self.publish)
         # ---

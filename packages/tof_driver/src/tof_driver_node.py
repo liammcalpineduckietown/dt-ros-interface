@@ -17,6 +17,7 @@ MAX_RANGE = 99  # meters
 
 
 class ToFNode(DTROS):
+
     def __init__(self):
         super(ToFNode, self).__init__(node_name="tof_node", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()

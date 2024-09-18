@@ -15,12 +15,13 @@ from duckietown_messages.utils.exceptions import DataDecodingError
 
 class ButtonDriverNode(DTROS):
 
-    def __init__(self):
+    def __init__(self, button_name="interaction"):
         super(ButtonDriverNode, self).__init__(
             node_name="button_driver_node",
             node_type=NodeType.DRIVER
         )
         self._robot_name = get_robot_name()
+        self._button_name = button_name
 
         # create publishers
         self.pub = rospy.Publisher(
@@ -51,7 +52,7 @@ class ButtonDriverNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # wait for the button queue to be ready
-        button = await (switchboard / "sensor" / "power-button").until_ready()
+        button = await (switchboard / "sensor" / "power-button" / self._button_name).until_ready()
         # subscribe
         await button.subscribe(self.publish)
         # ---

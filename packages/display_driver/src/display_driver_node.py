@@ -19,9 +19,10 @@ from duckietown_messages.sensors.image import Image
 
 class DisplayDriverNode(DTROS):
 
-    def __init__(self):
+    def __init__(self, display_name: str = "interaction_plate"):
         super(DisplayDriverNode, self).__init__(node_name="display_driver_node", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
+        self._display_name = display_name
         # create subscribers
         self._fragments_sub = rospy.Subscriber(
             "~fragments",
@@ -82,7 +83,7 @@ class DisplayDriverNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # display fragments
-        self._fragments = await (switchboard / "actuator" / "display" / "fragments").until_ready()
+        self._fragments = await (switchboard / "actuator" / "display" / self._display_name / "fragments").until_ready()
         # ---
         self._loop = asyncio.get_event_loop()
         await self.join()

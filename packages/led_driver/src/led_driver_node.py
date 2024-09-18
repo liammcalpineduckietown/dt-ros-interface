@@ -43,9 +43,10 @@ class LEDDriverNode(DTROS):
 
     """
 
-    def __init__(self):
+    def __init__(self, lights_name: str = "base"):
         super(LEDDriverNode, self).__init__(node_name="leds_driver", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
+        self._lights_name = lights_name
         # subscribers
         self.sub = rospy.Subscriber("~led_pattern", LEDPattern, self.led_cb, queue_size=1)
         # user hardware tests
@@ -96,7 +97,7 @@ class LEDDriverNode(DTROS):
         # create switchboard context
         switchboard = (await context("switchboard")).navigate(self._robot_name)
         # leds pattern queue
-        self._pattern = await (switchboard / "actuator" / "leds" / "rgba").until_ready()
+        self._pattern = await (switchboard / "actuator" / "leds" / self._lights_name / "rgba").until_ready()
         # ---
         self._loop = asyncio.get_event_loop()
         await self.join()

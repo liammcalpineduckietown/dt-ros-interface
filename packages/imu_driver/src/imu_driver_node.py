@@ -24,10 +24,11 @@ from duckietown_messages.utils.exceptions import DataDecodingError
 
 
 class IMUNode(DTROS):
-    def __init__(self):
+    def __init__(self, imu_name: str = "base"):
         super(IMUNode, self).__init__(node_name="imu", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
         self._robot_type = get_robot_type()
+        self._imu_name = imu_name
 
         # publishers initialization
         self.pub_imu_raw = rospy.Publisher('~raw', ROSImu, queue_size=10)
@@ -107,9 +108,9 @@ class IMUNode(DTROS):
 
         # IMU queue
         if self._robot_type == RobotType.DUCKIEDRONE:
-            imu_queue = await (self._switchboard / "sensor" / "imu" / "data").until_ready()  
+            imu_queue = await (self._switchboard / "sensor" / "imu" / self._imu_name / "data").until_ready()
         else:
-            imu_queue = await (self._switchboard / "sensor" / "imu" / "data_raw").until_ready()
+            imu_queue = await (self._switchboard / "sensor" / "imu" / self._imu_name / "data_raw").until_ready()
 
         # subscribe
         await imu_queue.configure(ContextConfig(patient=True)).subscribe(
@@ -120,7 +121,7 @@ class IMUNode(DTROS):
         
     async def worker_temperature(self):
         # The duckiebot has a temperature sensor
-        temperature_queue = await (self._switchboard / "sensor" / "imu" / "temperature").until_ready()
+        temperature_queue = await (self._switchboard / "sensor" / "imu" / self._imu_name / "temperature").until_ready()
         # Subscribe
         await temperature_queue.configure(ContextConfig(patient=True)).subscribe(
             self._publish_temperature
