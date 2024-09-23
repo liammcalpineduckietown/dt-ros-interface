@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+import traceback
 from asyncio import AbstractEventLoop
 from typing import Optional
 
@@ -37,6 +38,8 @@ class WheelsDriverNode(DTROS):
         super(WheelsDriverNode, self).__init__(node_name="wheels_driver", node_type=NodeType.DRIVER)
         self._robot_name = get_robot_name()
         self._actuator_name = actuator_name
+        # parameters
+        self._frequency = 30.0
         # publishers
         self.pub_wheels_cmd = rospy.Publisher(
             "~wheels_cmd_executed", WheelsCmdStamped, queue_size=1, dt_topic_type=TopicType.DRIVER
@@ -52,6 +55,8 @@ class WheelsDriverNode(DTROS):
         self._estop: Optional[DTPSContext] = None
         # event loop
         self._loop: Optional[AbstractEventLoop] = None
+        # pwm values
+        self._data: Optional[DifferentialPWM] = None
         # ---
         self.log("Initialized.")
 
@@ -75,21 +80,32 @@ class WheelsDriverNode(DTROS):
         else:
             self.log("Emergency Stop Released")
 
-    def cmds_cb(self, msg):
+    def cmds_cb(self, msg: WheelsCmdStamped):
         """
         Callback that updates the wheel commands.
 
             Args:
                 msg (WheelsCmdStamped): wheel commands
         """
-        if self._loop is None:
-            return
-        # pack data
-        raw: RawData = DifferentialPWM(left=msg.vel_left, right=msg.vel_right).to_rawdata()
-        # schedule the message for publishing
-        # TODO: evaluate the efficiency of this approach, alternatively, use a coro that runs at 30Hz and keep
-        #  publishing from a shared variable
-        asyncio.run_coroutine_threadsafe(self._pwm.publish(raw), self._loop)
+        self._data = DifferentialPWM(left=msg.vel_left, right=msg.vel_right)
+
+    async def publisher(self):
+        while not self.is_shutdown:
+            if self._data is not None:
+                # noinspection PyBroadException
+                try:
+                    # publish the last command
+                    await self._pwm.publish(self._data.to_rawdata())
+                    # reset the data
+                    self._data = None
+                except Exception:
+                    self.logerr(f"Failed to publish the last command:")
+                    traceback.print_exc()
+            # ---
+            # TODO: this can be improved by only sleeping the amount needed to re-align with the source.
+            #       if we noted the time of the last message, we could sleep until the next message is expected.
+            #       this is a simple solution that works for now.
+            await asyncio.sleep(1.0 / self._frequency)
 
     async def publish_executed(self, data: RawData):
         # TODO: only publish if somebody is listening
@@ -126,6 +142,8 @@ class WheelsDriverNode(DTROS):
         # subscribe
         self.loginfo("Subscribing to the 'pwm_filtered' queue")
         await pwm_filtered.subscribe(self.publish_executed)
+        # start publisher
+        await asyncio.create_task(self.publisher())
         # ---
         self._loop = asyncio.get_event_loop()
         await self.join()
