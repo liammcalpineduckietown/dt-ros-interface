@@ -39,6 +39,7 @@ class CameraNode(DTROS):
         # user hardware test
         # self._hardware_test = HardwareTestCamera()
         self.camera_info: Optional[Camera] = None
+        self.camera_intrinsics: Optional[CameraIntrinsicCalibration] = None
 
         # Setup publishers
         self._has_published: bool = False
@@ -84,35 +85,41 @@ class CameraNode(DTROS):
         )
         # publish image
         self.pub_img.publish(msg)
+        self.pub_camera_info()
         # ---
         if not self._has_published:
             self.log("Published the first image.")
             self._has_published = True
 
-    async def publish_camera_info(self, rdata: RawData):
+    async def save_camera_intrinsics(self, rdata: RawData):
         try:
-            camera: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
+            self.camera_intrinsics: CameraIntrinsicCalibration = CameraIntrinsicCalibration.from_rawdata(rdata)
         except DataDecodingError as e:
             self.logerr(f"Failed to decode an incoming message: {e.message}")
             return
-        
+
+    def publish_camera_info(self):
+        if self.camera_intrinsics is None:
+            self.loginfo(f"No camera intrinsic parameters received by ROS yet")
+            return
+
         if self.camera_info is None:
-            self.logwarn("Camera information not available yet.")
+            self.loginfo(f"No camera information received by ROS yet")
             return
 
         msg: ROSCameraInfo = ROSCameraInfo(
             header=rospy.Header(
                 # TODO: reuse the timestamp from the incoming message
                 stamp=self.time,
-                frame_id=camera.header.frame,
+                frame_id=self.camera_intrinsics.header.frame,
             ),
             width=self.camera_info.width,
             height=self.camera_info.height,
             distortion_model="plumb_bob",
-            D=camera.D,
-            K=camera.K,
-            R=camera.R,
-            P=camera.P,
+            D=self.camera_intrinsics.D,
+            K=self.camera_intrinsics.K,
+            R=self.camera_intrinsics.R,
+            P=self.camera_intrinsics.P,
         )
         self.pub_camera_info.publish(msg)
 
@@ -147,7 +154,7 @@ class CameraNode(DTROS):
         
         # subscribe
         await info.subscribe(self.save_camera_info)
-        await parameters.subscribe(self.publish_camera_info)
+        await parameters.subscribe(self.save_camera_intrinsics)
         await jpeg.subscribe(self.publish)
         # ---
         await self.join()
