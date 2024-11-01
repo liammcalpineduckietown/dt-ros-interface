@@ -85,7 +85,7 @@ class CameraNode(DTROS):
         )
         # publish image
         self.pub_img.publish(msg)
-        self.pub_camera_info()
+        self.publish_camera_info()
         # ---
         if not self._has_published:
             self.log("Published the first image.")
